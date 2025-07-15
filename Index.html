@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Longevity Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div id="root"></div>
+    <script type="text/babel">
+        console.clear(); // Suppress non-critical warnings
+
+        // Supplement Recommendations Map
+        const supplementRecommendations = {
+            'Lp(a)': { low: 'N/A', high: 'Niacin 500mg or PCSK9 inhibitors (consult doctor)' },
+            'ApoB': { low: 'N/A', high: 'Omega-3 2g or berberine' },
+            'HbA1c': { low: 'N/A', high: 'NMN 500mg or chromium' },
+            'LDL': { low: 'N/A', high: 'Red yeast rice' },
+            'HDL': { low: 'Niacin or exercise', high: 'N/A' },
+            'CRP': { low: 'N/A', high: 'Curcumin 500mg' },
+            'Vitamin D': { low: 'Vit D3 2000IU + K2', high: 'Reduce intake' },
+            'TSH': { low: 'Iodine', high: 'Selenium' },
+            'Ferritin': { low: 'Iron bisglycinate', high: 'Phlebotomy' },
+            'ALT/AST': { low: 'N/A', high: 'NAC 600mg' },
+            'eGFR': { low: 'Astragalus', high: 'N/A' },
+            'Homocysteine': { low: 'N/A', high: 'B-complex + TMG' },
+            'IGF-1': { low: 'Growth factors', high: 'Rapamycin' },
+            'GGT': { low: 'N/A', high: 'Glutathione' },
+            'NAD+': { low: 'NMN/NR precursors', high: 'N/A' },
+            'Telomere Length': { low: 'TA-65', high: 'N/A' },
+            'Epigenetic Age': { low: 'N/A', high: 'Resveratrol' },
+            'Senescence (p16/p21)': { low: 'N/A', high: 'Fisetin senolytic' },
+            'Klotho': { low: 'Rapamycin', high: 'N/A' },
+            'Testosterone': { low: 'Tongkat ali', high: 'N/A' },
+            'PSA': { low: 'N/A', high: 'Lycopene' },
+            'DHEA-S': { low: 'DHEA', high: 'N/A' },
+            'Estradiol': { low: 'DIM', high: 'N/A' },
+            'Progesterone': { low: 'Vitex', high: 'N/A' },
+            'Osteocalcin': { low: 'Vit K2/MK7', high: 'N/A' }
+        };
+
+        // Mock user data
+        const mockUserData = {
+            gender: "male",
+            name: "Jane Doe",
+            age: 45,
+            bioAge: 38,
+            adherenceScore: 85,
+            protocols: [
+                { id: 1, name: "NMN Supplement", time: "8:00 AM", status: "Completed" },
+                { id: 2, name: "Cold Plunge", time: "7:00 PM", status: "Pending" },
+                { id: 3, name: "Meditation", time: "9:00 PM", status: "Missed" }
+            ],
+            healthspanTrend: [80, 82, 84, 85, 86, 85, 87],
+            vitalTrends: {
+                lpa: [25, 28, 26, 30, 32, 29, 35],
+                apob: [85, 88, 86, 90, 92, 89, 95],
+                hba1c: [5.5, 5.4, 5.6, 5.3, 5.7, 5.2, 5.8],
+                ldl: [95, 92, 98, 90, 100, 88, 102],
+                hdl: [65, 67, 63, 68, 62, 70, 61],
+                crp: [0.8, 0.7, 0.9, 0.6, 1.0, 0.5, 1.1],
+                vitamin_d: [55, 58, 52, 60, 50, 62, 48],
+                tsh: [1.5, 1.4, 1.6, 1.3, 1.7, 1.2, 1.8],
+                ferritin: [120, 118, 122, 115, 125, 110, 130],
+                alt_ast: [25, 24, 26, 23, 27, 22, 28],
+                egfr: [95, 96, 94, 97, 93, 98, 92],
+                homocysteine: [8, 7.5, 8.5, 7, 9, 6.5, 9.5],
+                igf1: [150, 152, 148, 155, 145, 160, 140],
+                ggt: [25, 24, 26, 23, 27, 22, 28],
+                nad: [22, 23, 21, 24, 20, 25, 19],
+                telomere: [7.5, 7.6, 7.4, 7.7, 7.3, 7.8, 7.2],
+                epigenetic_age: [42, 41, 43, 40, 44, 39, 45],
+                senescence: [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8],
+                klotho: [850, 860, 840, 870, 830, 880, 820]
+            },
+            vitalChanges: [
+                { name: "Lp(a)", change: "-2 mg/dL", trend: "positive", link: "#lpa-spc" },
+                { name: "ApoB", change: "-5 mg/dL", trend: "positive", link: "#apob-spc" },
+                { name: "HbA1c", change: "-0.2%", trend: "positive", link: "#hba1c-spc" },
+                { name: "LDL", change: "-8 mg/dL", trend: "positive", link: "#ldl-spc" },
+                { name: "HDL", change: "+4 mg/dL", trend: "positive", link: "#hdl-spc" },
+                { name: "CRP", change: "-0.3 mg/L", trend: "positive", link: "#crp-spc" },
+                { name: "Vitamin D", change: "+8 ng/mL", trend: "positive", link: "#vitamin_d-spc" },
+                { name: "TSH", change: "-0.1 mIU/L", trend: "positive", link: "#tsh-spc" },
+                { name: "Ferritin", change: "+10 ng/mL", trend: "positive", link: "#ferritin-spc" },
+                { name: "ALT/AST", change: "-3 U/L", trend: "positive", link: "#alt_ast-spc" },
+                { name: "eGFR", change: "+4 mL/min", trend: "positive", link: "#egfr-spc" },
+                { name: "Homocysteine", change: "-1 μmol/L", trend: "positive", link: "#homocysteine-spc" },
+                { name: "IGF-1", change: "-5 ng/mL", trend: "positive", link: "#igf1-spc" },
+                { name: "GGT", change: "-2 U/L", trend: "positive", link: "#ggt-spc" },
+                { name: "NAD+", change: "+3 μM", trend: "positive", link: "#nad-spc" },
+                { name: "Telomere Length", change: "+0.2 kb", trend: "positive", link: "#telomere-spc" },
+                { name: "Epigenetic Age", change: "-1 year", trend: "positive", link: "#epigenetic_age-spc" },
+                { name: "Senescence (p16/p21)", change: "-0.1", trend: "positive", link: "#senescence-spc" },
+                { name: "Klotho", change: "+50 pg/mL", trend: "positive", link: "#klotho-spc" },
+                { name: "Testosterone", change: "+30 ng/dL", trend: "positive", link: "#testosterone-spc" },
+                { name: "PSA", change: "-0.5 ng/mL", trend: "positive", link: "#psa-spc" },
+                { name: "DHEA-S", change: "+20 μg/dL", trend: "positive", link: "#dhea_s-spc" },
+                { name: "Estradiol", change: "+10 pg/mL", trend: "positive", link: "#estradiol-spc" },
+                { name: "Progesterone", change: "+2 ng/mL", trend: "positive", link: "#progesterone-spc" },
+                { name: "Osteocalcin", change: "+5 ng/mL", trend: "positive", link: "#osteocalcin-spc" }
+            ]
+        };
+
+        // SPC Chart Function with Western Electric Rules
+        const createSPCChart = (ctx, data, label) => {
+            if (!ctx) return; // Prevent null errors
+            const mean = data.reduce((a, b) => a + b, 0) / data.length || 0;
+            const sd = data.length > 1 ? Math.sqrt(data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (data.length - 1)) : 0;
+            const ucl = mean + 3 * sd;
+            const lcl = mean - 3 * sd;
+            const twoSigma = mean + 2 * sd;
+            const twoSigmaNeg = mean - 2 * sd;
+
+            // Western Electric Rules
+            const rules = [];
+            // Rule 1: Point beyond control limits
+            const rule1Indexes = data.map((v, i) => (v > ucl || v < lcl) && i).filter(i => i !== false);
+            if (rule1Indexes.length) rules.push({ rule: "Point beyond control limits", indexes: rule1Indexes });
+
+            // Rule 2: 7 points in a row trending up or down
+            const rule2Indexes = [];
+            for (let i = 6; i < data.length; i++) {
+                const trend = data.slice(i - 6, i + 1);
+                const isUp = trend.every((v, j, arr) => j === 0 || v >= arr[j - 1]);
+                const isDown = trend.every((v, j, arr) => j === 0 || v <= arr[j - 1]);
+                if (isUp || isDown) rule2Indexes.push(i);
+            }
+            if (rule2Indexes.length) rules.push({ rule: "7 points trending", indexes: rule2Indexes });
+
+            // Rule 3: 2 of 3 points beyond 2 sigma
+            const rule3Indexes = [];
+            for (let i = 0; i < data.length - 2; i++) {
+                const window = data.slice(i, i + 3);
+                if (window.filter(v => v > twoSigma || v < twoSigmaNeg).length >= 2) rule3Indexes.push(i + 1);
+            }
+            if (rule3Indexes.length) rules.push({ rule: "2 of 3 beyond 2σ", indexes: rule3Indexes });
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => `Day ${i + 1}`),
+                    datasets: [
+                        { label, data, borderColor: '#2196F3', fill: false },
+                        { label: 'Mean', data: Array(data.length).fill(mean), borderColor: '#FFC107', borderDash: [5, 5] },
+                        { label: 'UCL', data: Array(data.length).fill(ucl), borderColor: '#F44336', borderDash: [5, 5] },
+                        { label: 'LCL', data: Array(data.length).fill(lcl), borderColor: '#F44336', borderDash: [5, 5] },
+                        { label: '2σ', data: Array(data.length).fill(twoSigma), borderColor: '#FF9800', borderDash: [5, 5], borderWidth: 1 },
+                        { label: '-2σ', data: Array(data.length).fill(twoSigmaNeg), borderColor: '#FF9800', borderDash: [5, 5], borderWidth: 1 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: `${label} SPC Trend` },
+                        annotation: {
+                            annotations: rules.flatMap((rule, ruleIndex) => 
+                                rule.indexes.map(index => ({
+                                    type: 'line',
+                                    mode: 'vertical',
+                                    scaleID: 'x',
+                                    value: index + 1,
+                                    borderColor: 'red',
+                                    borderWidth: 2,
+                                    label: { content: rule.rule, enabled: true, position: 'end' }
+                                }))
+                            )
+                        }
+                    },
+                    scales: { y: { beginAtZero: false } }
+                }
+            });
+        };
+
+        // Dashboard Component
+        const Dashboard = () => {
+            const [userData, setUserData] = React.useState(mockUserData);
+
+            // Toggle Gender for Testing
+            const toggleGender = () => {
+                const newGender = userData.gender === "male" ? "female" : "male";
+                setUserData({ ...userData, gender: newGender });
+            };
+
+            // Filter Changes by Gender
+            const filteredVitalChanges = userData.vitalChanges.filter(vital => {
+                if (userData.gender === "male") return !['Estradiol', 'Progesterone', 'Osteocalcin'].includes(vital.name);
+                if (userData.gender === "female") return !['Testosterone', 'PSA', 'DHEA-S'].includes(vital.name);
+                return true;
+            });
+
+            // Initialize Charts
+            React.useEffect(() => {
+                window.addEventListener('load', () => {
+                    const createChartIfExists = (id, data, label) => {
+                        const canvas = document.getElementById(id);
+                        if (canvas) createSPCChart(canvas.getContext('2d'), data, label);
+                    };
+                    createChartIfExists('healthspanChart', userData.healthspanTrend, 'Healthspan Score');
+                    filteredVitalChanges.forEach(vital => {
+                        const key = vital.name.toLowerCase().replace(/[\(\)\/ ]/g, '');
+                        createChartIfExists(key + 'SPCChart', userData.vitalTrends[key], vital.name);
+                    });
+                });
+            }, [userData.gender]);
+
+            // Handle reminder toggle
+            const toggleReminder = (id) => {
+                const updatedProtocols = userData.protocols.map(protocol =>
+                    protocol.id === id ? { ...protocol, status: protocol.status === "Completed" ? "Pending" : "Completed" } : protocol
+                );
+                setUserData({ ...userData, protocols: updatedProtocols });
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto p-6">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-6">Longevity Dashboard</h1>
+                    
+                    {/* Gender Toggle for Testing */}
+                    <div className="mb-4">
+                        <button onClick={toggleGender} className="px-4 py-2 bg-blue-500 text-white rounded">Toggle Gender: Current - {userData.gender}</button>
+                    </div>
+
+                    {/* User Profile Card */}
+                    <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+                        <h2 className="text-xl font-semibold text-gray-700">Welcome, {userData.name}</h2>
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <p><strong>Age:</strong> {userData.age}</p>
+                            <p><strong>Bio-Age:</strong> {userData.bioAge} <span className="text-sm text-gray-500" title="Calculated from biomarkers and wearables">ℹ️</span></p>
+                            <p><strong>Adherence Score:</strong> {userData.adherenceScore}% <span className="text-sm text-gray-500" title="Based on protocol completion">ℹ️</span></p>
+                        </div>
+                    </div>
+
+                    {/* Protocols and Reminders */}
+                    <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+                        <h2 className="text-xl font-semibold text-gray-700 mb-4">Today's Protocols</h2>
+                        <ul className="space-y-4">
+                            {userData.protocols.map(protocol => (
+                                <li key={protocol.id} className="flex justify-between items-center border-b pb-2">
+                                    <div>
+                                        <p className="font-medium">{protocol.name}</p>
+                                        <p className="text-sm text-gray-500">Scheduled: {protocol.time}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => toggleReminder(protocol.id)}
+                                        className={`px-4 py-2 rounded ${protocol.status === "Completed" ? "bg-green-500" : "bg-yellow-500"} text-white`}
+                                    >
+                                        {protocol.status}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Healthspan Trend Chart */}
+                    <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+                        <h2 className="text-xl font-semibold text-gray-700 mb-4">Healthspan Progress</h2>
+                        <canvas id="healthspanChart" className="w-full h-64"></canvas>
+                    </div>
+
+                    {/* Vital Changes Section with Supplements */}
+                    <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+                        <h2 className="text-xl font-semibold text-gray-700 mb-4">Vital Changes</h2>
+                        <ul className="space-y-4">
+                            {filteredVitalChanges.map((vital, index) => {
+                                const rec = supplementRecommendations[vital.name] || {};
+                                const supplementText = rec.high || rec.low || "N/A";
+                                const trendClass = vital.trend === "positive" ? "text-green-500" : "text-red-500";
+                                return (
+                                    <li key={index} className="flex justify-between items-center border-b pb-2">
+                                        <div>
+                                            <p className="font-medium">{vital.name}</p>
+                                            <p className={trendClass}>Change: {vital.change} <span className="text-sm text-gray-500" title={supplementText}>ℹ️ Supplement: {supplementText}</span></p>
+                                        </div>
+                                        <a href={vital.link} className="text-blue-500 hover:underline">View Data & Trends</a>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+
+                    {/* SPC Charts Section */}
+                    <div>
+                        {filteredVitalChanges.map((vital, index) => {
+                            const key = vital.name.toLowerCase().replace(/[\(\)\/ ]/g, '');
+                            const id = key + '-spc';
+                            return (
+                                <div key={index} className="bg-white shadow-md rounded-lg p-6 mb-6" id={id}>
+                                    <canvas id={key + 'SPCChart'} className="w-full h-64"></canvas>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Community Prompt */}
+                    <div className="mt-6 text-center">
+                        <p className="text-gray-600">Join our longevity community to share protocols and earn points!</p>
+                        <a href="#" className="text-blue-500 hover:underline">Explore Community</a>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the Dashboard
+        ReactDOM.render(<Dashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>
